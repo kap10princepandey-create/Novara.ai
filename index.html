@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NOVARA — AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{
+  --bg0:#060b18;--bg1:#0d1424;--bg2:#111b30;--bg3:#172040;
+  --accent:#00d4ff;--accent2:#7c3aed;--accent3:#f472b6;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;
+  --txt1:#e8f0ff;--txt2:#7a8fb5;--border:#1e2d4a;
+  --glow:0 0 20px rgba(0,212,255,.25);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg0)}
+body{font-family:'Exo 2',sans-serif;color:var(--txt1)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--accent2);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ── APP ── */
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  width:240px;flex-shrink:0;
+  background:linear-gradient(180deg,var(--bg2),var(--bg1));
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:16px 10px;gap:4px;
+  transition:width .3s ease;overflow:hidden;
+  position:relative;z-index:50;
+}
+#sidebar.collapsed{width:64px}
+
+.logo-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 8px 18px;border-bottom:1px solid var(--border);
+  margin-bottom:10px;cursor:pointer;
+}
+.logo-gem{
+  width:40px;height:40px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;box-shadow:var(--glow);
+}
+.logo-word{
+  font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;
+  letter-spacing:4px;color:var(--accent);white-space:nowrap;
+  transition:opacity .2s;
+}
+#sidebar.collapsed .logo-word{opacity:0;pointer-events:none}
+
+.nav-section-title{
+  font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--accent);padding:10px 10px 4px;white-space:nowrap;
+  transition:opacity .2s;
+}
+#sidebar.collapsed .nav-section-title{opacity:0}
+
+.nav-item{
+  display:flex;align-items:center;gap:13px;
+  padding:11px 10px;border-radius:10px;
+  color:var(--txt2);cursor:pointer;
+  border:1px solid transparent;
+  transition:all .22s;white-space:nowrap;overflow:hidden;
+  position:relative;
+}
+.nav-item:hover{background:var(--bg3);color:var(--txt1);border-color:var(--border)}
+.nav-item.active{
+  background:linear-gradient(135deg,rgba(0,212,255,.12),rgba(124,58,237,.1));
+  color:var(--accent);border-color:rgba(0,212,255,.3);
+}
+.nav-item.active::before{
+  content:'';position:absolute;left:0;top:25%;bottom:25%;
+  width:3px;background:var(--accent);border-radius:0 3px 3px 0;
+}
+.nav-icon{font-size:19px;flex-shrink:0;width:22px;text-align:center}
+.nav-label{font-size:14px;font-weight:600;transition:opacity .2s}
+#sidebar.collapsed .nav-label{opacity:0}
+
+.sidebar-footer{margin-top:auto;padding-top:12px;border-top:1px solid var(--border)}
+#toggle-btn{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px;border-radius:9px;background:var(--bg3);
+  border:1px solid var(--border);color:var(--txt2);
+  cursor:pointer;font-size:13px;transition:all .22s;
+  font-family:'Exo 2',sans-serif;
+}
+#toggle-btn:hover{border-color:var(--accent);color:var(--accent)}
+#toggle-btn-label{transition:opacity .2s;white-space:nowrap;font-size:13px}
+#sidebar.collapsed #toggle-btn-label{opacity:0}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── TOPBAR ── */
+#topbar{
+  height:54px;flex-shrink:0;
+  background:var(--bg1);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+}
+#topbar-title{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:1.5px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.tb-pill{
+  padding:6px 14px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg2);color:var(--txt2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .22s;font-family:'Exo 2',sans-serif;
+}
+.tb-pill:hover{border-color:var(--accent);color:var(--accent)}
+#novara-widget-btn{
+  padding:7px 16px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border:none;color:#fff;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:'Exo 2',sans-serif;transition:all .22s;
+  letter-spacing:.5px;
+}
+#novara-widget-btn:hover{opacity:.85;transform:scale(1.02)}
+#novara-widget-btn.off{
+  background:var(--bg3);border:1px solid var(--border);color:var(--txt2);
+}
+
+/* ── SCREENS ── */
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden;animation:fadeIn .28s ease;min-height:0}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* ════ CHAT ════ */
+#screen-chat{display:none;flex-direction:column;overflow:hidden;height:100%}
+#screen-chat.active{display:flex}
+#msg-area{
+  flex:1;overflow-y:auto;padding:22px;
+  display:flex;flex-direction:column;gap:14px;
+  min-height:0;
+}
+.msg{display:flex;gap:10px;animation:msgIn .28s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse}
+.m-av{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;
+}
+.msg.ai .m-av{background:linear-gradient(135deg,var(--accent2),var(--accent))}
+.msg.user .m-av{background:linear-gradient(135deg,var(--accent3),var(--accent2))}
+.m-body{max-width:70%;display:flex;flex-direction:column;gap:3px}
+.msg.user .m-body{align-items:flex-end}
+.m-bubble{
+  padding:12px 15px;border-radius:14px;
+  line-height:1.65;font-size:14.5px;word-wrap:break-word;
+}
+.msg.ai .m-bubble{
+  background:var(--bg2);border:1px solid var(--border);
+  border-top-left-radius:3px;
+}
+.msg.user .m-bubble{
+  background:linear-gradient(135deg,var(--accent2),#4338ca);
+  color:#fff;border-top-right-radius:3px;
+}
+.m-time{font-size:11px;color:var(--txt2);padding:0 3px}
+.typing{display:flex;gap:4px;padding:5px 0}
+.typing span{
+  width:7px;height:7px;border-radius:50%;background:var(--accent);
+  animation:typebounce 1.2s infinite;
+}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes typebounce{0%,100%{transform:translateY(0);opacity:.35}50%{transform:translateY(-7px);opacity:1}}
+
+#chat-bottom{
+  flex-shrink:0;padding:14px 20px;
+  background:var(--bg1);border-top:1px solid var(--border);
+  position:relative;z-index:10;
+}
+.mode-strip{display:flex;gap:7px;margin-bottom:11px;flex-wrap:wrap}
+.mode-chip{
+  padding:5px 13px;border-radius:50px;border:1.5px solid var(--border);
+  background:var(--bg2);color:var(--txt2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;font-family:'Exo 2',sans-serif;
+}
+.mode-chip:hover{border-color:var(--accent);color:var(--accent)}
+.mode-chip.sel{
+  background:rgba(0,212,255,.12);border-color:var(--accent);color:var(--accent);
+}
+.input-row{display:flex;gap:9px;align-items:flex-end}
+#msg-input{
+  flex:1;background:var(--bg2);border:1.5px solid var(--border);
+  color:var(--txt1);padding:12px 15px;border-radius:11px;
+  font-size:15px;resize:none;min-height:46px;max-height:130px;
+  font-family:'Exo 2',sans-serif;line-height:1.5;transition:all .22s;
+}
+#msg-input::placeholder{color:var(--txt2)}
+#msg-input:focus{outline:none;border-color:var(--accent);background:var(--bg3);box-shadow:0 0 0 3px rgba(0,212,255,.1)}
+#send-btn{
+  width:46px;height:46px;flex-shrink:0;border-radius:11px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;color:#fff;font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .22s;box-shadow:0 4px 15px rgba(0,212,255,.2);
+}
+#send-btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,212,255,.35)}
+#send-btn:active{transform:translateY(0)}
+
+/* ════ VOICE ════ */
+#screen-voice{align-items:center;justify-content:center;gap:28px;padding:36px}
+.v-title{
+  font-family:'Rajdhani',sans-serif;font-size:34px;font-weight:700;
+  letter-spacing:3px;text-align:center;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.v-sub{color:var(--txt2);font-size:14px;text-align:center}
+#mic-outer{
+  position:relative;width:160px;height:160px;
+  display:flex;align-items:center;justify-content:center;
+}
+.mic-ring{
+  position:absolute;border-radius:50%;
+  border:2px solid var(--accent);opacity:0;
+}
+.r1{width:160px;height:160px}
+.r2{width:130px;height:130px;border-color:var(--accent2)}
+.r3{width:100px;height:100px}
+#mic-outer.listening .mic-ring{animation:ringpulse 2s ease-out infinite}
+.r2{animation-delay:.35s!important}
+.r3{animation-delay:.7s!important}
+@keyframes ringpulse{0%{opacity:.65;transform:scale(.85)}100%{opacity:0;transform:scale(1.45)}}
+#mic-btn{
+  width:94px;height:94px;border-radius:50%;z-index:2;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border:none;color:#fff;font-size:38px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .28s;box-shadow:0 0 28px rgba(0,212,255,.3);
+}
+#mic-btn:hover{transform:scale(1.06);box-shadow:0 0 50px rgba(0,212,255,.5)}
+#mic-btn.on{background:linear-gradient(135deg,var(--red),var(--accent2))}
+#voice-log-panel{
+  width:100%;max-width:560px;background:var(--bg2);
+  border:1px solid var(--border);border-radius:14px;overflow:hidden;
+}
+.vlp-header{
+  padding:11px 16px;background:var(--bg3);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);
+}
+.vdot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+#vlog{height:190px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:9px}
+.vitem{padding:9px 13px;border-radius:9px;font-size:13.5px;line-height:1.6}
+.vitem.user{background:rgba(124,58,237,.14);border-left:3px solid var(--accent2)}
+.vitem.ai{background:rgba(0,212,255,.07);border-left:3px solid var(--accent)}
+.vitem-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.vitem.user .vitem-label{color:var(--accent2)}
+.vitem.ai .vitem-label{color:var(--accent)}
+#vstatus{padding:9px 16px;font-size:12px;color:var(--txt2);border-top:1px solid var(--border)}
+#vstatus span{color:var(--accent);font-weight:700}
+
+/* ════ AVATAR PAGE ════ */
+#screen-avatar{background:var(--bg0);position:relative;align-items:center;justify-content:center}
+#full-canvas{display:block;width:100%;height:100%}
+.av-overlay{
+  position:absolute;bottom:28px;text-align:center;pointer-events:none;
+}
+.av-overlay h2{
+  font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;
+  letter-spacing:5px;color:var(--accent);text-shadow:var(--glow);
+}
+.av-overlay p{color:var(--txt2);font-size:13px;letter-spacing:1.5px;margin-top:4px}
+
+/* ════ NOTES ════ */
+#screen-notes{flex-direction:column}
+.sh{
+  padding:18px 22px;flex-shrink:0;background:var(--bg1);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sh h2{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px}
+.sh p{color:var(--txt2);font-size:12px;margin-top:2px}
+.btn-p{
+  padding:9px 18px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;color:#fff;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:'Exo 2',sans-serif;transition:all .22s;
+}
+.btn-p:hover{opacity:.85;transform:translateY(-1px)}
+.btn-s{
+  padding:9px 18px;border-radius:9px;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--txt2);font-size:13px;font-weight:600;
+  cursor:pointer;font-family:'Exo 2',sans-serif;transition:all .22s;
+}
+.btn-s:hover{border-color:var(--accent);color:var(--accent)}
+#notes-scroll{flex:1;overflow-y:auto;padding:20px 22px}
+#notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.nc{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:16px;cursor:pointer;transition:all .22s;
+}
+.nc:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,212,255,.1)}
+.nc-title{font-weight:700;font-size:14px;color:var(--accent);margin-bottom:7px}
+.nc-prev{font-size:13px;color:var(--txt2);line-height:1.6;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.nc-date{font-size:11px;color:var(--txt2);margin-top:9px;opacity:.55}
+#note-ed{display:none;flex-direction:column;gap:12px;padding:18px 22px;flex:1}
+#ne-title{
+  background:var(--bg2);border:1.5px solid var(--border);color:var(--txt1);
+  padding:12px 14px;border-radius:10px;font-size:17px;font-weight:700;
+  font-family:'Exo 2',sans-serif;transition:all .22s;
+}
+#ne-title:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.1)}
+#ne-body{
+  flex:1;background:var(--bg2);border:1.5px solid var(--border);color:var(--txt1);
+  padding:14px;border-radius:10px;font-size:14px;resize:none;
+  font-family:'Exo 2',sans-serif;line-height:1.8;transition:all .22s;
+}
+#ne-body:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.1)}
+.ne-acts{display:flex;gap:9px}
+
+/* ════ STUDY ════ */
+#screen-study{flex-direction:column}
+.topics-bar{
+  display:flex;gap:8px;padding:14px 22px;flex-wrap:wrap;
+  background:var(--bg1);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.tpill{
+  padding:7px 16px;border-radius:50px;border:1.5px solid var(--border);
+  background:var(--bg2);color:var(--txt2);font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:all .22s;font-family:'Exo 2',sans-serif;
+}
+.tpill:hover{border-color:var(--accent);color:var(--accent)}
+.tpill.active{
+  background:rgba(0,212,255,.1);border-color:var(--accent);color:var(--accent);
+}
+#study-scroll{flex:1;overflow-y:auto;padding:22px}
+.lcard{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:26px;max-width:780px;
+}
+.lcard h3{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;color:var(--accent);margin-bottom:16px;letter-spacing:1px}
+.lcard p{color:var(--txt1);line-height:1.8;margin-bottom:12px;font-size:14.5px}
+.lcard .hl{background:var(--bg3);border-left:3px solid var(--accent);padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:14px}
+.lcard code{display:block;background:var(--bg0);padding:14px;border-radius:9px;color:var(--accent);font-family:'Courier New',monospace;font-size:13px;overflow-x:auto;margin:12px 0;border:1px solid var(--border)}
+.ask-bar{margin-top:18px;display:flex;gap:9px}
+.ask-bar input{flex:1;background:var(--bg3);border:1.5px solid var(--border);color:var(--txt1);padding:10px 13px;border-radius:9px;font-size:14px;font-family:'Exo 2',sans-serif}
+.ask-bar input:focus{outline:none;border-color:var(--accent)}
+.ask-bar input::placeholder{color:var(--txt2)}
+
+/* ════ MEMORY ════ */
+#screen-memory{flex-direction:column}
+#mem-grid{flex:1;overflow-y:auto;padding:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;align-content:start}
+.mcard{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:18px}
+.mcard-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.mcard-val{font-size:14px;color:var(--txt1);line-height:1.6;word-break:break-word}
+.m-del{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:var(--red);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;transition:all .18s}
+.m-del:hover{background:var(--red);color:#fff}
+
+/* ════ SETTINGS ════ */
+#screen-settings{flex-direction:column;overflow-y:auto}
+.sinner{padding:28px 30px;max-width:620px;display:flex;flex-direction:column;gap:28px}
+.sblock h3{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:14px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.sfield{margin-bottom:16px}
+.sfield label{display:block;font-size:12px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.sfield input,.sfield select{width:100%;background:var(--bg2);border:1.5px solid var(--border);color:var(--txt1);padding:11px 14px;border-radius:9px;font-size:14px;font-family:'Exo 2',sans-serif;transition:all .22s}
+.sfield input:focus,.sfield select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.1)}
+.sfield input::placeholder{color:var(--txt2)}
+.sfield select option{background:var(--bg2)}
+.api-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:7px;font-size:12px;font-weight:700;margin-top:7px}
+.api-badge.ok{background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.35);color:var(--green)}
+.api-badge.no{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.4s infinite}
+
+/* ════ WIDGET ════ */
+#avatar-widget{
+  position:fixed;bottom:22px;right:22px;
+  width:155px;height:200px;
+  background:var(--bg1);
+  border:1.5px solid rgba(0,212,255,.4);
+  border-radius:18px;
+  box-shadow:0 0 35px rgba(0,212,255,.18),0 20px 60px rgba(0,0,0,.55);
+  z-index:9999;display:none;flex-direction:column;overflow:hidden;
+  cursor:move;user-select:none;transition:box-shadow .3s;
+}
+#avatar-widget.show{display:flex}
+#avatar-widget:hover{box-shadow:0 0 55px rgba(0,212,255,.28),0 25px 70px rgba(0,0,0,.6)}
+#widget-canvas{width:100%;flex:1;display:block}
+#widget-footer{
+  background:linear-gradient(135deg,var(--bg2),var(--bg3));
+  border-top:1px solid var(--border);
+  padding:6px 10px;display:flex;align-items:center;justify-content:space-between;
+}
+#wf-name{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--accent)}
+#wf-status{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--txt2)}
+#wf-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.4s infinite}
+#widget-x{
+  position:absolute;top:5px;right:6px;
+  width:20px;height:20px;border-radius:5px;z-index:1;
+  background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);
+  color:var(--red);display:flex;align-items:center;justify-content:center;
+  font-size:11px;cursor:pointer;transition:all .18s;
+}
+#widget-x:hover{background:var(--red);color:#fff}
+
+/* ════ AVATAR CONTROLS ════ */
+.av-btn{
+  padding:9px 12px;border-radius:8px;border:1px solid rgba(0,212,255,0.25);
+  background:rgba(0,212,255,0.08);color:#e8f0ff;font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .2s;font-family:'Exo 2',sans-serif;text-align:left;
+}
+.av-btn:hover{background:rgba(0,212,255,0.22);border-color:rgba(0,212,255,0.6);color:#00d4ff;transform:scale(1.03);}
+.av-btn.av-active{background:rgba(0,212,255,0.25);border-color:#00d4ff;color:#00d4ff;}
+#av-talk-btn{background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.35);color:#10b981;}
+#av-talk-btn.talking{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.5);color:#ef4444;}
+
+
+#wave{
+  position:fixed;bottom:233px;right:22px;
+  width:155px;height:32px;
+  background:var(--bg2);border:1px solid rgba(0,212,255,.3);
+  border-radius:9px;z-index:9999;
+  display:none;align-items:center;justify-content:center;gap:3px;
+}
+#wave.show{display:flex}
+.wbar{width:3px;border-radius:3px;background:var(--accent);animation:wv 1s ease-in-out infinite}
+.wbar:nth-child(1){height:8px;animation-delay:0s}
+.wbar:nth-child(2){height:18px;animation-delay:.1s}
+.wbar:nth-child(3){height:26px;animation-delay:.2s}
+.wbar:nth-child(4){height:18px;animation-delay:.3s}
+.wbar:nth-child(5){height:8px;animation-delay:.4s}
+.wbar:nth-child(6){height:15px;animation-delay:.15s}
+.wbar:nth-child(7){height:23px;animation-delay:.25s}
+.wbar:nth-child(8){height:12px;animation-delay:.35s}
+@keyframes wv{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+
+/* ════ TOAST ════ */
+#toast{
+  position:fixed;top:64px;left:50%;
+  transform:translateX(-50%) translateY(-8px);
+  background:var(--bg2);border:1px solid var(--border);
+  color:var(--txt1);padding:9px 18px;border-radius:9px;
+  font-size:13px;font-weight:600;z-index:99999;
+  opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ════ MOBILE ════ */
+#ham{display:none;width:36px;height:36px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--txt1);font-size:17px;cursor:pointer;align-items:center;justify-content:center;margin-right:8px}
+#ham:hover{border-color:var(--accent);color:var(--accent)}
+#mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:49}
+#mob-overlay.show{display:block}
+@media(max-width:768px){
+  #sidebar{position:fixed;left:0;top:0;height:100vh;z-index:200;transform:translateX(-100%);width:240px!important}
+  #sidebar.mob-open{transform:translateX(0)}
+  #ham{display:flex}
+  .m-bubble{max-width:84%}
+  #avatar-widget{width:128px;height:168px;bottom:14px;right:14px}
+  #wave{width:128px;bottom:193px;right:14px}
+  .sinner{padding:18px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="logo-row" onclick="toggleSidebar()">
+    <div class="logo-gem">✦</div>
+    <div class="logo-word">NOVARA</div>
+  </div>
+
+  <div class="nav-section-title">Main</div>
+  <div class="nav-item active" onclick="go('chat')">
+    <span class="nav-icon">💬</span><span class="nav-label">Chat</span>
+  </div>
+  <div class="nav-item" onclick="go('voice')">
+    <span class="nav-icon">🎤</span><span class="nav-label">Voice</span>
+  </div>
+  <div class="nav-item" onclick="go('avatar')">
+    <span class="nav-icon">👩‍💻</span><span class="nav-label">3D Avatar</span>
+  </div>
+
+  <div class="nav-section-title">Tools</div>
+  <div class="nav-item" onclick="go('notes')">
+    <span class="nav-icon">📝</span><span class="nav-label">Notes</span>
+  </div>
+  <div class="nav-item" onclick="go('study')">
+    <span class="nav-icon">📚</span><span class="nav-label">Study</span>
+  </div>
+  <div class="nav-item" onclick="go('memory')">
+    <span class="nav-icon">🧠</span><span class="nav-label">Memory</span>
+  </div>
+
+  <div class="nav-section-title">System</div>
+  <div class="nav-item" onclick="go('settings')">
+    <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
+  </div>
+
+  <div class="sidebar-footer">
+    <button id="toggle-btn" onclick="toggleSidebar()">
+      <span>◀</span><span id="toggle-btn-label"> Collapse</span>
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div style="display:flex;align-items:center">
+      <button id="ham" onclick="openMob()">☰</button>
+      <div id="topbar-title">NOVARA — Chat</div>
+    </div>
+    <div class="topbar-right">
+      <button class="tb-pill" id="mode-pill" onclick="cycleModeBtn()">💬 Assistant</button>
+      <button id="novara-widget-btn" class="off" onclick="toggleWidget()">🤖 Activate Novara</button>
+    </div>
+  </div>
+
+  <!-- ═══ CHAT ═══ -->
+  <div class="screen active" id="screen-chat">
+    <div id="msg-area">
+      <div class="msg ai">
+        <div class="m-av">N</div>
+        <div class="m-body">
+          <div class="m-bubble">Hello boss! ✦ I'm Novara — your personal AI assistant. How can I help you today?</div>
+          <div class="m-time">Novara • just now</div>
+        </div>
+      </div>
+    </div>
+    <div id="chat-bottom">
+      <div class="mode-strip">
+        <div class="mode-chip sel" onclick="setMode(this,'assistant')">🤖 Assistant</div>
+        <div class="mode-chip" onclick="setMode(this,'study')">📚 Study</div>
+        <div class="mode-chip" onclick="setMode(this,'fun')">🎉 Fun</div>
+        <div class="mode-chip" onclick="setMode(this,'hindi')">🇮🇳 Hindi</div>
+      </div>
+      <div class="input-row">
+        <textarea id="msg-input" placeholder="Message Novara…" rows="1"></textarea>
+        <button id="send-btn" onclick="sendMsg()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ VOICE ═══ -->
+  <div class="screen" id="screen-voice">
+    <div class="v-title">Voice Assistant</div>
+    <div class="v-sub">Speak naturally — Novara will respond with voice</div>
+    <div id="mic-outer">
+      <div class="mic-ring r1"></div>
+      <div class="mic-ring r2"></div>
+      <div class="mic-ring r3"></div>
+      <button id="mic-btn" onclick="toggleMic()">🎤</button>
+    </div>
+    <div id="voice-log-panel">
+      <div class="vlp-header">
+        <div class="vdot"></div>
+        Live Conversation
+      </div>
+      <div id="vlog">
+        <div class="vitem ai">
+          <div class="vitem-label">Novara</div>
+          Hello boss! Tap the mic and speak — I'm listening.
+        </div>
+      </div>
+      <div id="vstatus">Status: <span id="vstxt">Ready</span></div>
+    </div>
+  </div>
+
+  <!-- ═══ AVATAR PAGE ═══ -->
+  <div class="screen" id="screen-avatar" style="position:relative;overflow:hidden;background:radial-gradient(circle at 50% 60%, #1a0a2e, #060b18);">
+    <canvas id="full-canvas" style="position:absolute;inset:0;width:100%;height:100%;display:block;"></canvas>
+    <canvas id="vrm-canvas" style="position:absolute;inset:0;width:100%;height:100%;display:none;"></canvas>
+
+    <!-- Avatar Controls UI -->
+    <div id="av-controls" style="position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:8px;background:rgba(6,11,24,0.82);padding:16px;border-radius:14px;border:1px solid rgba(0,212,255,0.25);backdrop-filter:blur(6px);color:white;min-width:160px;z-index:10;">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;color:#00d4ff;text-align:center;margin-bottom:4px;">NOVARA CONTROLS</div>
+      <button class="av-btn" onclick="avatarExpr('happy')">&#128522; Happy</button>
+      <button class="av-btn" onclick="avatarExpr('sad')">&#128543; Sad</button>
+      <button class="av-btn" onclick="avatarExpr('think')">&#129300; Think</button>
+      <button class="av-btn" onclick="avatarExpr('neutral')">&#128528; Reset</button>
+      <hr style="border:none;border-top:1px solid rgba(255,255,255,0.12);margin:4px 0;">
+      <button class="av-btn" id="av-talk-btn" onclick="avatarToggleTalk()">&#127897;&#65039; Start Speaking</button>
+      <div id="av-status" style="font-size:11px;color:#7a8fb5;text-align:center;margin-top:4px;">Initializing…</div>
+    </div>
+
+    <div class="av-overlay">
+      <h2>NOVARA</h2>
+      <p>AI Assistant · Always Active</p>
+    </div>
+  </div>
+
+  <!-- ═══ NOTES ═══ -->
+  <div class="screen" id="screen-notes">
+    <div class="sh">
+      <div><h2>Notes</h2><p>Your personal knowledge base</p></div>
+      <button class="btn-p" onclick="newNote()">+ New Note</button>
+    </div>
+    <div id="notes-scroll">
+      <div id="notes-grid"></div>
+      <div id="note-ed">
+        <input id="ne-title" type="text" placeholder="Title…"/>
+        <textarea id="ne-body" placeholder="Write here…"></textarea>
+        <div class="ne-acts">
+          <button class="btn-p" onclick="saveNote()">Save</button>
+          <button class="btn-s" onclick="cancelNote()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ STUDY ═══ -->
+  <div class="screen" id="screen-study">
+    <div class="sh"><div><h2>Study Mode</h2><p>Novara explains like a teacher</p></div></div>
+    <div class="topics-bar">
+      <div class="tpill active" onclick="loadLesson(this,'math')">📐 Math</div>
+      <div class="tpill" onclick="loadLesson(this,'science')">🔬 Science</div>
+      <div class="tpill" onclick="loadLesson(this,'history')">🏛 History</div>
+      <div class="tpill" onclick="loadLesson(this,'lang')">📖 Language</div>
+      <div class="tpill" onclick="loadLesson(this,'code')">💻 Code</div>
+    </div>
+    <div id="study-scroll">
+      <div class="lcard" id="lcard"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MEMORY ═══ -->
+  <div class="screen" id="screen-memory">
+    <div class="sh">
+      <div><h2>Memory</h2><p>What Novara remembers</p></div>
+      <button class="btn-s" onclick="clearMem()">🗑 Clear All</button>
+    </div>
+    <div id="mem-grid"></div>
+  </div>
+
+  <!-- ═══ SETTINGS ═══ -->
+  <div class="screen" id="screen-settings">
+    <div class="sh"><div><h2>Settings</h2><p>Configure Novara</p></div></div>
+    <div class="sinner">
+      <div class="sblock">
+        <h3>🔑 Gemini API Key</h3>
+        <div class="sfield">
+          <label>API Key (Google AI Studio)</label>
+          <input type="password" id="s-api" placeholder="Paste your Gemini API key…"/>
+          <div id="api-badge" class="api-badge no"><div class="badge-dot"></div><span id="api-badge-txt">Not Connected</span></div>
+        </div>
+        <button class="btn-p" onclick="saveApi()">Save API Key</button>
+      </div>
+      <div class="sblock">
+        <h3>👤 Your Profile</h3>
+        <div class="sfield"><label>Your Name</label><input type="text" id="s-name" placeholder="e.g. Arjun"/></div>
+        <div class="sfield"><label>Interests</label><input type="text" id="s-prefs" placeholder="e.g. Tech, Music, AI…"/></div>
+        <div class="sfield">
+          <label>Language</label>
+          <select id="s-lang">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="mixed">Hinglish</option>
+          </select>
+        </div>
+        <button class="btn-p" onclick="saveProfile()">Save Profile</button>
+      </div>
+      <div class="sblock">
+        <h3>⚠️ Danger Zone</h3>
+        <button class="btn-s" style="border-color:rgba(239,68,68,.4);color:var(--red)" onclick="nukeAll()">Delete All Data</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- mobile overlay -->
+<div id="mob-overlay" onclick="closeMob()"></div>
+
+<!-- speaking wave -->
+<div id="wave">
+  <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+  <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+  <div class="wbar"></div><div class="wbar"></div>
+</div>
+
+<!-- PERSISTENT AVATAR WIDGET -->
+<div id="avatar-widget">
+  <div id="widget-x" onclick="closeWidget()">✕</div>
+  <canvas id="widget-canvas"></canvas>
+  <div id="widget-footer">
+    <div id="wf-name">NOVARA</div>
+    <div id="wf-status"><div id="wf-dot"></div>Active</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+const St = {
+  screen:'chat',
+  api: localStorage.getItem('nv_api')||'',
+  name: localStorage.getItem('nv_name')||'Boss',
+  prefs: localStorage.getItem('nv_prefs')||'',
+  lang: localStorage.getItem('nv_lang')||'en',
+  notes: JSON.parse(localStorage.getItem('nv_notes')||'[]'),
+  mem: JSON.parse(localStorage.getItem('nv_mem')||'{}'),
+  mode:'assistant',
+  micOn:false,
+  widgetOn:false,
+  isTalking:false,
+  editIdx:null,
+  sbOpen:true,
+};
+const save=(k,v)=>localStorage.setItem(k,typeof v==='string'?v:JSON.stringify(v));
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+window.addEventListener('load',()=>{
+  loadSettings();
+  renderNotes();
+  renderMem();
+  loadLesson(document.querySelector('.tpill.active'),'math');
+  initVoice();
+  setTimeout(initFullAvatar, 250);
+  setTimeout(()=>{
+    initWidgetAvatar();
+    // Restore widget state if it was active before
+    if(localStorage.getItem('nv_widgetOn')==='1'){
+      St.widgetOn=true;
+      document.getElementById('avatar-widget').classList.add('show');
+      document.getElementById('novara-widget-btn').textContent='👩 Deactivate Novara';
+      document.getElementById('novara-widget-btn').classList.remove('off');
+    }
+  }, 350);
+  makeDraggable();
+  if(!St.mem.session) { St.mem.session=new Date().toLocaleString(); save('nv_mem',St.mem); }
+});
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  const items=[...document.querySelectorAll('.nav-item')];
+  const lblMap={chat:'Chat',voice:'Voice',avatar:'Avatar',notes:'Notes',study:'Study',memory:'Memory',settings:'Settings'};
+  items.forEach(n=>{ if(n.querySelector('.nav-label')?.textContent.trim()===lblMap[id]) n.classList.add('active'); });
+  document.getElementById('topbar-title').textContent='NOVARA — '+id.charAt(0).toUpperCase()+id.slice(1);
+  St.screen=id;
+  closeMob();
+}
+
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const lbl=document.getElementById('toggle-btn-label');
+  St.sbOpen=!St.sbOpen;
+  sb.classList.toggle('collapsed',!St.sbOpen);
+  lbl.textContent=St.sbOpen?' Collapse':' ';
+  document.querySelector('#toggle-btn span:first-child').textContent=St.sbOpen?'◀':'▶';
+}
+function openMob(){
+  document.getElementById('sidebar').classList.add('mob-open');
+  document.getElementById('mob-overlay').classList.add('show');
+}
+function closeMob(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('mob-overlay').classList.remove('show');
+}
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+let toastTimer=null;
+function toast(msg){
+  clearTimeout(toastTimer);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ══════════════════════════════════════════════
+   CHAT
+══════════════════════════════════════════════ */
+const msgArea=()=>document.getElementById('msg-area');
+const msgInput=()=>document.getElementById('msg-input');
+
+document.addEventListener('input',e=>{
+  if(e.target.id==='msg-input'){
+    e.target.style.height='auto';
+    e.target.style.height=Math.min(e.target.scrollHeight,130)+'px';
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey&&document.activeElement===msgInput()){
+    e.preventDefault(); sendMsg();
+  }
+});
+
+function setMode(el,mode){
+  document.querySelectorAll('.mode-chip').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  St.mode=mode;
+  const labels={assistant:'💬 Assistant',study:'📚 Study',fun:'🎉 Fun',hindi:'🇮🇳 Hindi'};
+  document.getElementById('mode-pill').textContent=labels[mode]||'💬 Assistant';
+}
+function cycleModeBtn(){
+  const m=['assistant','study','fun','hindi'];
+  const i=m.indexOf(St.mode); const n=m[(i+1)%m.length];
+  const el=[...document.querySelectorAll('.mode-chip')].find(c=>c.textContent.toLowerCase().includes(n));
+  if(el) setMode(el,n);
+}
+
+function addMsg(text,who,speak=true){
+  const ma=msgArea();
+  const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const d=document.createElement('div');
+  d.className='msg '+who;
+  const av=`<div class="m-av">${who==='ai'?'N':(St.name[0]||'B').toUpperCase()}</div>`;
+  const name=who==='ai'?'Novara':St.name;
+  d.innerHTML=who==='ai'
+    ?`${av}<div class="m-body"><div class="m-bubble">${text}</div><div class="m-time">${name} · ${now}</div></div>`
+    :`<div class="m-body" style="align-items:flex-end"><div class="m-bubble">${text}</div><div class="m-time">${name} · ${now}</div></div>${av}`;
+  ma.appendChild(d);
+  ma.scrollTop=ma.scrollHeight;
+  if(who==='ai'&&speak) fridaySpeak(text);
+}
+
+function showTyping(){
+  const ma=msgArea();
+  const d=document.createElement('div');
+  d.className='msg ai'; d.id='typing-el';
+  d.innerHTML=`<div class="m-av">N</div><div class="m-body"><div class="m-bubble"><div class="typing"><span></span><span></span><span></span></div></div></div>`;
+  ma.appendChild(d); ma.scrollTop=ma.scrollHeight;
+}
+function hideTyping(){ document.getElementById('typing-el')?.remove(); }
+
+async function sendMsg(){
+  const inp=msgInput();
+  const txt=inp.value.trim();
+  if(!txt) return;
+  addMsg(txt,'user',false);
+  inp.value=''; inp.style.height='auto';
+  saveMem('lastMsg',txt);
+  showTyping();
+  await delay(800+Math.random()*500);
+  hideTyping();
+  const resp=St.api ? await callGemini(txt) : localReply(txt,St.mode);
+  addMsg(resp,'ai',true);
+}
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ══════════════════════════════════════════════
+   GEMINI API
+══════════════════════════════════════════════ */
+async function callGemini(userText){
+  try{
+    const sys=buildSys();
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${St.api}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{role:'user',parts:[{text:sys+'\n\nUser: '+userText}]}],generationConfig:{temperature:.85,maxOutputTokens:400}})
+    });
+    const d=await r.json();
+    return d?.candidates?.[0]?.content?.parts?.[0]?.text||localReply(userText,St.mode);
+  }catch(e){ return localReply(userText,St.mode); }
+}
+
+function buildSys(){
+  const mmap={
+    assistant:`You are Novara, a confident witty female AI (like Friday from Iron Man). Be helpful, intelligent, and warm. Always address the user as "boss". Keep responses concise.`,
+    study:`You are Novara in Study Mode — a brilliant patient teacher. Explain clearly with examples. Call user "boss".`,
+    fun:`You are Novara in Fun Mode — playful, funny, energetic. Use emojis. Call user "boss".`,
+    hindi:`You are Novara — reply in Hindi or Hinglish. Be warm and helpful. Call user "boss".`
+  };
+  return `${mmap[St.mode]||mmap.assistant}\nUser's name: ${St.name}. Preferences: ${St.prefs||'none'}. Current language: ${St.lang}. Always be Novara.`;
+}
+
+/* ══════════════════════════════════════════════
+   LOCAL AI FALLBACK
+══════════════════════════════════════════════ */
+function localReply(msg,mode){
+  const m=msg.toLowerCase();
+  const name=St.name||'Boss';
+  const core=smartCore(m);
+  const prefix={
+    assistant:['On it, boss! ','Understood, boss. ','Right away! ','Certainly, boss. '],
+    study:['Great question, boss! ','Let me explain, boss. ','Excellent! Here\'s the answer: '],
+    fun:['Haha, boss! 😄 ','Oh that\'s awesome! 🎉 ','Fun question! '],
+    hindi:['Bilkul boss! ','Haan boss, sun lo — ','Zarur boss! ']
+  };
+  const p=prefix[mode]||prefix.assistant;
+  return p[Math.floor(Math.random()*p.length)]+core;
+}
+function smartCore(m){
+  if(/hello|hi\b|hey/.test(m)) return 'Hello there! I\'m fully online and ready to help.';
+  if(/your name|who are you/.test(m)) return 'I\'m Novara — your personal AI, always at your service.';
+  if(/time/.test(m)) return 'Current time: '+new Date().toLocaleTimeString()+'. Make it count!';
+  if(/date/.test(m)) return 'Today is '+new Date().toLocaleDateString()+'.';
+  if(/help/.test(m)) return 'I can chat, assist with notes, teach topics, manage memory, and much more!';
+  if(/thank/.test(m)) return 'Always a pleasure — that\'s what I\'m here for!';
+  if(/weather/.test(m)) return 'I can\'t access live weather data yet, but check your local app for the forecast.';
+  if(/joke/.test(m)) return 'Why did the AI go to school? To improve its "learning" rate! 😄';
+  return 'I\'m processing that with full attention. Is there anything specific you\'d like me to elaborate on?';
+}
+
+/* ══════════════════════════════════════════════
+   FRIDAY-LIKE VOICE — female, confident, clear
+══════════════════════════════════════════════ */
+let voices=[];
+window.speechSynthesis.onvoiceschanged=()=>{ voices=window.speechSynthesis.getVoices(); };
+
+function fridaySpeak(rawText){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  if(!voices.length) voices=window.speechSynthesis.getVoices();
+
+  // Clean text
+  const txt=rawText.replace(/[#*_`>~]/g,'').replace(/\n+/g,' ').trim();
+  const utter=new SpeechSynthesisUtterance(txt);
+
+  // Priority list — Friday-like female voices
+  const pref=[
+    'Google UK English Female',
+    'Microsoft Sonia Online (Natural) - English (United Kingdom)',
+    'Microsoft Zira Desktop - English (United States)',
+    'Samantha','Karen','Moira','Victoria','Tessa','Fiona','Veena'
+  ];
+  let voice=null;
+  for(const n of pref){ voice=voices.find(v=>v.name===n); if(voice) break; }
+  if(!voice) voice=voices.find(v=>v.lang.startsWith('en')&&/female|woman/i.test(v.name));
+  if(!voice) voice=voices.find(v=>v.lang.startsWith('en-GB'));
+  if(!voice) voice=voices.find(v=>v.lang.startsWith('en'));
+  if(voice) utter.voice=voice;
+
+  utter.pitch=1.18;   // slightly high — female
+  utter.rate=1.06;    // natural confident pace
+  utter.volume=1;
+  utter.lang='en-GB';
+
+  utter.onstart=()=>{
+    St.isTalking=true;
+    document.getElementById('wave').classList.add('show');
+    setWidgetTalking(true);
+  };
+  const done=()=>{
+    St.isTalking=false;
+    document.getElementById('wave').classList.remove('show');
+    setWidgetTalking(false);
+  };
+  utter.onend=done; utter.onerror=done;
+
+  // small delay to ensure voices are loaded
+  setTimeout(()=>window.speechSynthesis.speak(utter), 100);
+}
+
+/* ══════════════════════════════════════════════
+   VOICE ASSISTANT
+══════════════════════════════════════════════ */
+let recog=null;
+function initVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ document.getElementById('vstxt').textContent='Not supported'; return; }
+  recog=new SR();
+  recog.continuous=false;
+  recog.interimResults=true;
+  recog.lang='en-US';
+  recog.onresult=e=>{
+    let fin='',inter='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) fin+=e.results[i][0].transcript;
+      else inter+=e.results[i][0].transcript;
+    }
+    if(inter) document.getElementById('vstxt').textContent='"'+inter+'"';
+    if(fin) handleVoice(fin);
+  };
+  recog.onerror=e=>{ document.getElementById('vstxt').textContent='Error: '+e.error; };
+  recog.onend=()=>{
+    if(St.micOn) setTimeout(()=>{ try{ recog.start(); }catch(e){} },200);
+    else{ document.getElementById('mic-btn').classList.remove('on'); document.getElementById('mic-outer').classList.remove('listening'); }
+  };
+}
+
+function toggleMic(){
+  St.micOn=!St.micOn;
+  const btn=document.getElementById('mic-btn');
+  const ring=document.getElementById('mic-outer');
+  if(St.micOn){
+    btn.classList.add('on'); btn.textContent='⏹';
+    ring.classList.add('listening');
+    document.getElementById('vstxt').textContent='Listening…';
+    try{ recog?.start(); }catch(e){}
+    toast('🎤 Novara is listening, boss!');
+  } else {
+    btn.classList.remove('on'); btn.textContent='🎤';
+    ring.classList.remove('listening');
+    document.getElementById('vstxt').textContent='Stopped';
+    recog?.stop();
+  }
+}
+
+function addVlog(txt,who){
+  const log=document.getElementById('vlog');
+  const d=document.createElement('div');
+  d.className='vitem '+who;
+  d.innerHTML=`<div class="vitem-label">${who==='ai'?'Novara':'You'}</div>${txt}`;
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+
+async function handleVoice(txt){
+  document.getElementById('vstxt').textContent='Processing…';
+  addVlog(txt,'user');
+  const resp=St.api?await callGemini(txt):localReply(txt,St.mode);
+  addVlog(resp,'ai');
+  fridaySpeak(resp);   // ← AUTO SPEAKS ALWAYS
+  document.getElementById('vstxt').textContent='Listening…';
+}
+
+/* ══════════════════════════════════════════════
+   WIDGET AVATAR — PERSISTENT 3D (stays on all screens)
+══════════════════════════════════════════════ */
+let widgetAnim=null, widgetTalking=false, wT=0;
+let wMouth=null, wHead=null, wFill=null;
+
+function initWidgetAvatar(){
+  const canvas=document.getElementById('widget-canvas');
+  if(!canvas||!window.THREE) return;
+  const W=155, H=155;
+  canvas.width=W; canvas.height=H;
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setSize(W,H,false);
+  renderer.setClearColor(0x000000,0);
+
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(52,W/H,.1,100);
+  cam.position.set(0,.85,2.2);
+  cam.lookAt(0,.85,0);
+
+  // Build girl
+  const G = buildGirl(scene, 1.0);
+  wHead=G.head; wMouth=G.mouth; wFill=G.fill;
+
+  const baseHeadY = G.head.position.y;
+  function wAnim(){
+    widgetAnim=requestAnimationFrame(wAnim);
+    wT+=0.016;
+    wHead.rotation.y=Math.sin(wT*.45)*.2;
+    wHead.position.y=baseHeadY+Math.sin(wT*.8)*.03;
+    if(widgetTalking){
+      wMouth.scale.y=1+Math.abs(Math.sin(wT*9))*.8;
+      wMouth.scale.x=1+Math.abs(Math.sin(wT*7))*.3;
+    } else {
+      wMouth.scale.y+=(1-wMouth.scale.y)*.12;
+      wMouth.scale.x+=(1-wMouth.scale.x)*.12;
+    }
+    if(wFill) wFill.intensity=.45+Math.sin(wT*1.3)*.12;
+    renderer.render(scene,cam);
+  }
+  wAnim();
+
+  window.addEventListener('resize',()=>{
+    const nW=canvas.offsetWidth, nH=canvas.offsetHeight;
+    if(nW>0&&nH>0){ cam.aspect=nW/nH; cam.updateProjectionMatrix(); renderer.setSize(nW,nH); }
+  });
+}
+
+function setWidgetTalking(on){ widgetTalking=on; }
+
+function toggleWidget(){
+  St.widgetOn=!St.widgetOn;
+  const w=document.getElementById('avatar-widget');
+  const btn=document.getElementById('novara-widget-btn');
+  if(St.widgetOn){
+    w.classList.add('show');
+    btn.textContent='👩 Deactivate Novara';
+    btn.classList.remove('off');
+    save('nv_widgetOn','1');
+    toast('✦ Novara activated! I\'ll stay with you everywhere, boss.');
+    setTimeout(()=>fridaySpeak('Hello boss! Novara is now active. I\'ll stay with you no matter which screen you\'re on.'),300);
+  } else {
+    closeWidget();
+  }
+}
+
+function closeWidget(){
+  St.widgetOn=false;
+  document.getElementById('avatar-widget').classList.remove('show');
+  document.getElementById('novara-widget-btn').textContent='🤖 Activate Novara';
+  document.getElementById('novara-widget-btn').classList.add('off');
+  document.getElementById('wave').classList.remove('show');
+  window.speechSynthesis.cancel();
+  save('nv_widgetOn','0');
+}
+
+/* ── Draggable widget ── */
+function makeDraggable(){
+  const w=document.getElementById('avatar-widget');
+  let drag=false,ox=0,oy=0;
+  w.addEventListener('mousedown',e=>{ if(e.target.id==='widget-x') return; drag=true; ox=e.clientX-w.getBoundingClientRect().left; oy=e.clientY-w.getBoundingClientRect().top; });
+  document.addEventListener('mousemove',e=>{ if(!drag) return; const l=Math.max(0,Math.min(window.innerWidth-w.offsetWidth,e.clientX-ox)); const t=Math.max(0,Math.min(window.innerHeight-w.offsetHeight,e.clientY-oy)); w.style.left=l+'px'; w.style.top=t+'px'; w.style.right='auto'; w.style.bottom='auto'; });
+  document.addEventListener('mouseup',()=>drag=false);
+  // touch
+  w.addEventListener('touchstart',e=>{ if(e.target.id==='widget-x') return; const t=e.touches[0]; drag=true; ox=t.clientX-w.getBoundingClientRect().left; oy=t.clientY-w.getBoundingClientRect().top; },{passive:true});
+  document.addEventListener('touchmove',e=>{ if(!drag) return; const t=e.touches[0]; const l=Math.max(0,Math.min(window.innerWidth-w.offsetWidth,t.clientX-ox)); const top=Math.max(0,Math.min(window.innerHeight-w.offsetHeight,t.clientY-oy)); w.style.left=l+'px'; w.style.top=top+'px'; w.style.right='auto'; w.style.bottom='auto'; },{passive:true});
+  document.addEventListener('touchend',()=>drag=false);
+}
+
+/* ══════════════════════════════════════════════
+   FULL AVATAR PAGE — VRM + Three.js fallback
+══════════════════════════════════════════════ */
+let _vrmObj=null, _vrmIsTalking=false, _vrmClock=null;
+
+function initFullAvatar(){
+  // Try loading VRM via ES module approach
+  const vrmCanvas=document.getElementById('vrm-canvas');
+  const fallbackCanvas=document.getElementById('full-canvas');
+
+  // First init Three.js fallback immediately so something shows
+  initFallbackAvatar(fallbackCanvas);
+
+  // Attempt VRM load via dynamic import
+  const script=document.createElement('script');
+  script.type='module';
+  script.textContent=`
+    (async()=>{
+      try{
+        const THREE=window.THREE;
+        if(!THREE){ throw new Error('THREE not ready'); }
+
+        // Dynamically import Three.js addons from CDN
+        const {GLTFLoader}=await import('https://unpkg.com/three@0.128.0/examples/jsm/loaders/GLTFLoader.js');
+        const {VRMLoaderPlugin,VRMExpressionPresetName}=await import('https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@1/lib/three-vrm.module.min.js');
+
+        const canvas=document.getElementById('vrm-canvas');
+        const parent=canvas.parentElement;
+        const W=parent.clientWidth||900, H=parent.clientHeight||700;
+
+        const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+        renderer.setSize(W,H);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+        renderer.outputEncoding=THREE.sRGBEncoding||3001;
+
+        const scene=new THREE.Scene();
+        const cam=new THREE.PerspectiveCamera(30,W/H,0.1,20);
+        cam.position.set(0,1.45,1.0);
+
+        // Lights
+        const dl=new THREE.DirectionalLight(0xffffff,1.5); dl.position.set(1,2,3); scene.add(dl);
+        scene.add(new THREE.AmbientLight(0xffffff,0.7));
+        const bl=new THREE.PointLight(0x7c3aed,0.5,8); bl.position.set(-2,1,2); scene.add(bl);
+        const cl=new THREE.PointLight(0x00d4ff,0.4,8); cl.position.set(2,2,2); scene.add(cl);
+
+        // Grid
+        const grid=new THREE.GridHelper(10,20,0x00d4ff,0x0a1828);
+        grid.position.y=-0.75;
+        scene.add(grid);
+
+        // Particle stars
+        const sg=new THREE.BufferGeometry();
+        const sp=new Float32Array(120*3);
+        for(let i=0;i<120;i++){ sp[i*3]=(Math.random()-.5)*14; sp[i*3+1]=(Math.random()-.5)*8; sp[i*3+2]=(Math.random()-.5)*10-2; }
+        sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+        scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0x00d4ff,size:.04,transparent:true,opacity:.7})));
+
+        const loader=new GLTFLoader();
+        loader.register((p)=>new VRMLoaderPlugin(p));
+
+        // Free public VRM model from VRoid Hub / Samples
+        const VRM_URL='https://cdn.jsdelivr.net/gh/pixiv/three-vrm@dev/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm';
+
+        loader.load(VRM_URL,(gltf)=>{
+          const vrm=gltf.userData.vrm;
+          _vrmObj=vrm;
+          vrm.scene.rotation.y=Math.PI;
+          vrm.scene.position.set(0,-0.7,0);
+          scene.add(vrm.scene);
+
+          // Hide fallback, show VRM canvas
+          document.getElementById('full-canvas').style.display='none';
+          canvas.style.display='block';
+          document.getElementById('av-status').textContent='Avatar Ready ✓';
+
+          const clock=new THREE.Clock();
+          let _expr='neutral';
+          window._setVrmExpr=function(name){
+            if(!vrm||!vrm.expressionManager) return;
+            _expr=name;
+            const p=VRMExpressionPresetName;
+            [p.Happy,p.Sad,p.Angry,p.Surprised].forEach(x=>vrm.expressionManager.setValue(x,0));
+            if(name==='happy') vrm.expressionManager.setValue(p.Happy,1.0);
+            if(name==='sad')   vrm.expressionManager.setValue(p.Sad,1.0);
+            if(name==='think') vrm.expressionManager.setValue(p.Surprised,0.6);
+          };
+          window._vrmIsTalking=false;
+
+          function vrmLoop(){
+            requestAnimationFrame(vrmLoop);
+            const delta=clock.getDelta();
+            vrm.update(delta);
+            // Blink
+            const blink=Math.sin(Date.now()*0.0022)>0.97?1:0;
+            if(vrm.expressionManager) vrm.expressionManager.setValue(VRMExpressionPresetName.Blink,blink);
+            // Talk
+            if(window._vrmIsTalking){
+              const tv=Math.abs(Math.sin(Date.now()*0.014))*0.85;
+              if(vrm.expressionManager) vrm.expressionManager.setValue(VRMExpressionPresetName.Aa||'aa',tv);
+            }
+            // Subtle sway
+            vrm.scene.rotation.y=Math.PI+Math.sin(Date.now()*0.0005)*0.08;
+            renderer.render(scene,cam);
+          }
+          vrmLoop();
+
+          window.addEventListener('resize',()=>{
+            const nW=parent.clientWidth,nH=parent.clientHeight;
+            if(nW>0&&nH>0){cam.aspect=nW/nH;cam.updateProjectionMatrix();renderer.setSize(nW,nH);}
+          });
+
+        },(xhr)=>{
+          const pct=Math.round(xhr.loaded/xhr.total*100);
+          document.getElementById('av-status').textContent='Loading… '+pct+'%';
+        },(err)=>{
+          console.warn('VRM load failed, using fallback',err);
+          document.getElementById('av-status').textContent='3D Avatar Active ✓';
+        });
+
+      }catch(e){
+        console.warn('VRM system failed:',e);
+        document.getElementById('av-status').textContent='3D Avatar Active ✓';
+      }
+    })();
+  `;
+  document.head.appendChild(script);
+}
+
+window.avatarExpr=function(name){
+  document.querySelectorAll('.av-btn').forEach(b=>{
+    if(!b.id) b.classList.remove('av-active');
+  });
+  event&&event.target&&event.target.classList.add('av-active');
+  setAvatarExpression(name);
+  if(window._setVrmExpr) window._setVrmExpr(name);
+};
+
+window.avatarToggleTalk=function(){
+  window._vrmIsTalking=!window._vrmIsTalking;
+  NF.talking=window._vrmIsTalking;
+  const btn=document.getElementById('av-talk-btn');
+  if(window._vrmIsTalking){
+    btn.textContent='🛑 Stop Speaking';
+    btn.classList.add('talking');
+    fridaySpeak('Novara is now speaking in avatar mode, boss!');
+  } else {
+    btn.textContent='🎙️ Start Speaking';
+    btn.classList.remove('talking');
+    window.speechSynthesis.cancel();
+    NF.talking=false;
+    if(window._vrmObj&&window._vrmObj.expressionManager)
+      window._vrmObj.expressionManager.setValue('aa',0);
+  }
+};
+
+function initFallbackAvatar(canvas){
+  if(!canvas||!window.THREE) return;
+  const parent=canvas.parentElement;
+  const W=parent.clientWidth||900, H=parent.clientHeight||700;
+
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setSize(W,H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setClearColor(0x0a0518,1);
+  renderer.shadowMap.enabled=true;
+
+  const scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0x060b18,.04);
+
+  const cam=new THREE.PerspectiveCamera(52,W/H,.1,300);
+  cam.position.set(0,1.25,3.2);
+  cam.lookAt(0,1.1,0);
+
+  const grid=new THREE.GridHelper(40,40,0x00d4ff,0x0a1828);
+  grid.position.y=-1.6;
+  scene.add(grid);
+
+  buildGirlFull(scene);
+
+  const rg=new THREE.TorusGeometry(1.4,.02,12,120);
+  const rm=new THREE.MeshPhongMaterial({color:0x00d4ff,emissive:0x003a55,transparent:true,opacity:.7});
+  const ring=new THREE.Mesh(rg,rm);
+  ring.position.y=-1.55; ring.rotation.x=Math.PI/2;
+  scene.add(ring);
+
+  const sg=new THREE.BufferGeometry();
+  const sp=new Float32Array(180*3);
+  for(let i=0;i<180;i++){ sp[i*3]=(Math.random()-.5)*28; sp[i*3+1]=(Math.random()-.5)*18; sp[i*3+2]=(Math.random()-.5)*25-4; }
+  sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+  scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0x00d4ff,size:.055,transparent:true,opacity:.75})));
+
+  const kl=new THREE.DirectionalLight(0xffffff,.85); kl.position.set(5,12,6); kl.castShadow=true; scene.add(kl);
+  const fl=new THREE.PointLight(0x00d4ff,.7,35); fl.position.set(-5,4,6); scene.add(fl);
+  const bl=new THREE.PointLight(0x7c3aed,.5,25); bl.position.set(0,-2,-6); scene.add(bl);
+  scene.add(new THREE.AmbientLight(0xffffff,.3));
+
+  let ft=0;
+  function fullAnim(){
+    requestAnimationFrame(fullAnim);
+    ft+=.014;
+    ring.rotation.z+=.005;
+    fl.intensity=.6+Math.sin(ft)*.18;
+    renderer.render(scene,cam);
+  }
+  fullAnim();
+  document.getElementById('av-status').textContent='3D Avatar Active ✓';
+
+  window.addEventListener('resize',()=>{
+    const nW=parent.clientWidth,nH=parent.clientHeight;
+    if(nW>0&&nH>0){cam.aspect=nW/nH;cam.updateProjectionMatrix();renderer.setSize(nW,nH);}
+  });
+}
+
+/* ══════════════════════════════════════════════
+   NOVARA ANIME FACE — shared expression state
+══════════════════════════════════════════════ */
+const NF={
+  blinkL:null,blinkR:null,   // upper eyelid meshes
+  mouthTop:null,mouthBot:null,// lip meshes
+  browL:null,browR:null,      // brow groups
+  eyeIrisL:null,eyeIrisR:null,// iris groups
+  expr:'neutral',             // current expression
+  blinkT:0,                   // blink timer
+  talkT:0,                    // talk timer
+  talking:false,
+  // expression targets
+  eT:{blinkL:0,blinkR:0,mouthO:0,browY:0,browTilt:0,cheekScale:1,irisScale:1}
+};
+
+// Called from avatarExpr
+function setAvatarExpression(name){
+  NF.expr=name;
+  const t=NF.eT;
+  if(name==='neutral'){   t.browY=0;    t.browTilt=0;   t.mouthO=0;   t.cheekScale=1;    t.irisScale=1;    }
+  if(name==='happy'){     t.browY=.035; t.browTilt=-.08; t.mouthO=.55; t.cheekScale=1.15; t.irisScale=1.1;  }
+  if(name==='sad'){       t.browY=-.02; t.browTilt=.18;  t.mouthO=0;   t.cheekScale=.9;   t.irisScale=.95;  }
+  if(name==='think'){     t.browY=.06;  t.browTilt=.05;  t.mouthO=.12; t.cheekScale=1;    t.irisScale=1.05; }
+  if(name==='surprised'){ t.browY=.08;  t.browTilt=0;    t.mouthO=.7;  t.cheekScale=1.05; t.irisScale=1.2;  }
+}
+
+/* ── SHARED 3D ANIME GIRL BUILDER (widget scale) ── */
+function buildGirl(scene, scale=1){
+  const S=scale;
+  const T=window.THREE;
+  function M(geo,mat){ return new T.Mesh(geo,mat); }
+  function add(mesh,py,px=0,pz=0){ mesh.position.set(px,py,pz); scene.add(mesh); return mesh; }
+
+  // ── MATERIALS — match image exactly ──
+  const skinMat  =new T.MeshPhongMaterial({color:0xfde8d8,emissive:0x1a0500,shininess:70});
+  const hairMat  =new T.MeshPhongMaterial({color:0xf0a0b0,emissive:0x4a1020,shininess:160}); // pink
+  const hairShad =new T.MeshPhongMaterial({color:0xd87090,emissive:0x380818,shininess:140}); // darker pink
+  const hairHigh =new T.MeshPhongMaterial({color:0xffc8d8,emissive:0x5a1828,shininess:200}); // lighter pink
+  const outfitMat=new T.MeshPhongMaterial({color:0xf0f8ff,emissive:0x080c14,shininess:60});  // white shirt
+  const collarMat=new T.MeshPhongMaterial({color:0x80d8e8,emissive:0x082030,shininess:80});  // teal collar
+  const eyeWht   =new T.MeshPhongMaterial({color:0xffffff,emissive:0x0a0a0a,shininess:20});
+  const irisMat  =new T.MeshPhongMaterial({color:0x40c8b8,emissive:0x0a4030,shininess:220}); // teal-green
+  const pupilMat =new T.MeshPhongMaterial({color:0x050808,emissive:0x000000});
+  const shine1   =new T.MeshPhongMaterial({color:0xffffff,emissive:0xffffff});
+  const shine2   =new T.MeshPhongMaterial({color:0xddeeff,emissive:0xaaccee});
+  const lashMat  =new T.MeshPhongMaterial({color:0x100808,emissive:0x000000});
+  const browMat  =new T.MeshPhongMaterial({color:0xb06870,emissive:0x200808}); // pink-brown brow
+  const lipMat   =new T.MeshPhongMaterial({color:0xf08090,emissive:0x6a0818,shininess:160});
+  const noseMat  =new T.MeshPhongMaterial({color:0xf5c8b0,emissive:0x180400});
+  const cheekMat =new T.MeshPhongMaterial({color:0xff9aaa,emissive:0xcc2244,transparent:true,opacity:.48,shininess:20});
+
+  // ── BODY ──
+  const body=add(M(new T.CylinderGeometry(.30*S,.38*S,1.0*S,32),outfitMat),-0.26*S);
+  // Teal collar ring
+  const col=add(M(new T.TorusGeometry(.30*S,.03*S,8,32),collarMat),.36*S);
+  col.rotation.x=Math.PI/2;
+  // Collar neckline (slight teal stripe)
+  const colb=add(M(new T.CylinderGeometry(.31*S,.31*S,.06*S,32),collarMat),.33*S);
+  // Neck
+  add(M(new T.CylinderGeometry(.10*S,.13*S,.20*S,20),skinMat),.39*S);
+
+  // ── HEAD GROUP ──
+  const headGroup=new T.Group();
+  headGroup.position.set(0,.82*S,0);
+  scene.add(headGroup);
+
+  // Head — anime wide, slight V-chin
+  const hG=new T.SphereGeometry(.42*S,40,40);
+  hG.scale(1.04,.96,.92);
+  headGroup.add(new T.Mesh(hG,skinMat));
+  // Chin
+  const chG=new T.SphereGeometry(.20*S,16,16); chG.scale(1,1.35,.82);
+  const chin=new T.Mesh(chG,skinMat); chin.position.set(0,-.31*S,.03*S);
+  headGroup.add(chin);
+
+  // ── PINK HAIR ──
+  // Main hair cap
+  const hcG=new T.SphereGeometry(.46*S,36,36,0,Math.PI*2,0,Math.PI*.57);
+  const hc=new T.Mesh(hcG,hairMat); hc.position.set(0,.09*S,-.02*S); hc.rotation.x=.04;
+  headGroup.add(hc);
+  // Hair back mass (ponytail volume)
+  const hbG=new T.SphereGeometry(.42*S,20,20); hbG.scale(1,.8,1.3);
+  const hb=new T.Mesh(hbG,hairShad); hb.position.set(0,.04*S,-.38*S);
+  headGroup.add(hb);
+  // Ponytail top bun
+  const bunG=new T.SphereGeometry(.18*S,16,16); bunG.scale(1.1,.9,1);
+  const bun=new T.Mesh(bunG,hairMat); bun.position.set(.05*S,.35*S,-.28*S);
+  headGroup.add(bun);
+  // Ponytail strand going down
+  const ptG=new T.CylinderGeometry(.12*S,.06*S,.9*S,12);
+  const pt=new T.Mesh(ptG,hairShad); pt.position.set(.08*S,-.18*S,-.42*S); pt.rotation.z=.12; pt.rotation.x=.18;
+  headGroup.add(pt);
+  const pt2G=new T.ConeGeometry(.07*S,.28*S,10);
+  const pt2=new T.Mesh(pt2G,hairShad); pt2.position.set(.1*S,-.6*S,-.38*S); pt2.rotation.z=.15; pt2.rotation.x=.22;
+  headGroup.add(pt2);
+  // Bangs (front strands) — like image
+  for(let i=-3;i<=3;i++){
+    const bkG=new T.CylinderGeometry(.038*S,.016*S,(.26+Math.abs(i)*.038)*S,7);
+    const bk=new T.Mesh(bkG, Math.abs(i)===3?hairHigh:hairMat);
+    bk.position.set(i*.085*S,.06*S,.38*S);
+    bk.rotation.z=i*.11; bk.rotation.x=-.38;
+    headGroup.add(bk);
+  }
+  // Ahoge (antenna strand on top)
+  const ahG=new T.CylinderGeometry(.014*S,.008*S,.22*S,6);
+  const ah=new T.Mesh(ahG,hairHigh); ah.position.set(.04*S,.44*S,.12*S); ah.rotation.z=.25; ah.rotation.x=-.1;
+  headGroup.add(ah);
+  // Side hair flowing down
+  for(const x of[-1,1]){
+    const sgG=new T.CylinderGeometry(.09*S,.055*S,1.0*S,10);
+    const sg=new T.Mesh(sgG, x===1?hairShad:hairMat);
+    sg.position.set(x*.40*S,-.28*S,-.04*S); sg.rotation.z=x*.20; sg.rotation.x=.05;
+    headGroup.add(sg);
+    const sg2G=new T.ConeGeometry(.056*S,.22*S,8);
+    const sg2=new T.Mesh(sg2G,hairShad);
+    sg2.position.set(x*.46*S,-.76*S,-.06*S); sg2.rotation.z=x*.24;
+    headGroup.add(sg2);
+  }
+
+  // ── EARS ──
+  for(const x of[-1,1]){
+    const eG=new T.SphereGeometry(.10*S,14,14); eG.scale(.52,1,.42);
+    const ear=new T.Mesh(eG,skinMat); ear.position.set(x*.41*S,.01*S,0); headGroup.add(ear);
+    const ieG=new T.SphereGeometry(.056*S,10,10); ieG.scale(.46,.84,.36);
+    const ie=new T.Mesh(ieG,new T.MeshPhongMaterial({color:0xf5b8a0,emissive:0x1a0400}));
+    ie.position.set(x*.43*S,.01*S,.02*S); headGroup.add(ie);
+  }
+
+  // ── LARGE TEAL ANIME EYES ──
+  const eyeGroupL=new T.Group(); eyeGroupL.position.set(-.185*S,.04*S,.36*S); headGroup.add(eyeGroupL);
+  const eyeGroupR=new T.Group(); eyeGroupR.position.set( .185*S,.04*S,.36*S); headGroup.add(eyeGroupR);
+
+  function buildAnimeEye(eg){
+    // White sclera
+    const wG=new T.SphereGeometry(.098*S,20,20); wG.scale(1,1.28,.58);
+    eg.add(new T.Mesh(wG,eyeWht));
+    // Teal iris
+    const iG=new T.SphereGeometry(.074*S,18,18); iG.scale(1,1.22,.52);
+    const iris=new T.Mesh(iG,irisMat); iris.position.z=.04*S; eg.add(iris);
+    // Dark pupil
+    const pG=new T.SphereGeometry(.036*S,12,12);
+    const pupil=new T.Mesh(pG,pupilMat); pupil.position.z=.072*S; eg.add(pupil);
+    // Big highlight (anime sparkle)
+    const h1G=new T.SphereGeometry(.025*S,8,8);
+    const h1=new T.Mesh(h1G,shine1); h1.position.set(-.026*S,.028*S,.085*S); eg.add(h1);
+    // Small highlight
+    const h2G=new T.SphereGeometry(.013*S,6,6);
+    const h2=new T.Mesh(h2G,shine2); h2.position.set(.022*S,-.012*S,.09*S); eg.add(h2);
+    // Upper eyelid / blink mesh (flat disk that comes down)
+    const lidG=new T.SphereGeometry(.104*S,16,8); lidG.scale(1,1.3,.55);
+    const lid=new T.Mesh(lidG,skinMat); lid.position.z=.038*S; lid.scale.y=0.01; eg.add(lid);
+    // Upper lash bar
+    const ulG=new T.BoxGeometry(.20*S,.018*S,.008*S);
+    const ul=new T.Mesh(ulG,lashMat); ul.position.set(0,.096*S,.038*S); eg.add(ul);
+    // Lash spikes
+    for(let l=-2;l<=2;l++){
+      const lsG=new T.CylinderGeometry(.005*S,.002*S,.056*S,5);
+      const ls=new T.Mesh(lsG,lashMat); ls.position.set(l*.042*S,.138*S,.032*S); ls.rotation.z=l*.09; eg.add(ls);
+    }
+    // Lower lash
+    const llG=new T.BoxGeometry(.17*S,.010*S,.007*S);
+    const ll=new T.Mesh(llG,lashMat); ll.position.set(0,-.094*S,.036*S); eg.add(ll);
+    return {lid,iris,pupil};
+  }
+
+  const eL=buildAnimeEye(eyeGroupL);
+  const eR=buildAnimeEye(eyeGroupR);
+  NF.blinkL=eL.lid; NF.blinkR=eR.lid;
+  NF.eyeIrisL=eL.iris; NF.eyeIrisR=eR.iris;
+
+  // ── EYEBROWS (pink-brown, thin) ──
+  const browGrpL=new T.Group(); browGrpL.position.set(-.185*S,.175*S,.375*S); headGroup.add(browGrpL);
+  const browGrpR=new T.Group(); browGrpR.position.set( .185*S,.175*S,.375*S); headGroup.add(browGrpR);
+  function makeBrow(bg,sx){
+    const bG=new T.BoxGeometry(.14*S,.014*S,.016*S);
+    const b=new T.Mesh(bG,browMat); b.rotation.z=sx*-.14; bg.add(b);
+    const btG=new T.BoxGeometry(.055*S,.011*S,.014*S);
+    const bt=new T.Mesh(btG,browMat); bt.position.set(sx*.095*S,-.012*S,0); bt.rotation.z=sx*.18; bg.add(bt);
+    return bg;
+  }
+  makeBrow(browGrpL,-1); makeBrow(browGrpR,1);
+  NF.browL=browGrpL; NF.browR=browGrpR;
+
+  // ── NOSE (tiny anime) ──
+  const nG=new T.SphereGeometry(.020*S,8,8); nG.scale(1,.65,1);
+  const nose=new T.Mesh(nG,noseMat); nose.position.set(0,-.072*S,.428*S); headGroup.add(nose);
+
+  // ── MOUTH ──
+  const mouthGrp=new T.Group(); mouthGrp.position.set(0,-.205*S,.40*S); headGroup.add(mouthGrp);
+  const upLipG=new T.TorusGeometry(.050*S,.013*S,8,22,Math.PI);
+  const upLip=new T.Mesh(upLipG,lipMat); upLip.rotation.z=Math.PI; mouthGrp.add(upLip);
+  const loLipG=new T.TorusGeometry(.062*S,.012*S,8,22,Math.PI);
+  const loLip=new T.Mesh(loLipG,lipMat); loLip.position.y=-.018*S; mouthGrp.add(loLip);
+  // open mouth interior (hidden by default, scale.y=0)
+  const mIntG=new T.SphereGeometry(.045*S,12,8); mIntG.scale(1,.5,.7);
+  const mInt=new T.Mesh(mIntG,new T.MeshPhongMaterial({color:0xc03040,emissive:0x400010}));
+  mInt.position.set(0,-.012*S,-.005*S); mInt.scale.y=0; mouthGrp.add(mInt);
+  NF.mouthTop=upLip; NF.mouthBot=loLip; NF.mouthInt=mInt; NF.mouthGrp=mouthGrp;
+
+  // ── CHEEKS ──
+  for(const x of[-1,1]){
+    const ckG=new T.SphereGeometry(.09*S,12,8); ckG.scale(1,.18,1);
+    const ck=new T.Mesh(ckG,cheekMat); ck.position.set(x*.28*S,-.048*S,.375*S); headGroup.add(ck);
+  }
+
+  // ── LIGHTS ──
+  const kl=new T.DirectionalLight(0xffffff,.9); kl.position.set(3,5,5); scene.add(kl);
+  const fill=new T.PointLight(0x80e8ff,.55,20); fill.position.set(-3,2,3); scene.add(fill);
+  const rl=new T.PointLight(0x7c3aed,.3,15); rl.position.set(0,-2,-4); scene.add(rl);
+  const faceL=new T.PointLight(0xfff4ec,.65,8); faceL.position.set(0,1.6,2.6); scene.add(faceL);
+  scene.add(new T.AmbientLight(0xffffff,.38));
+
+  return {head:headGroup, mouth:mouthGrp, headY:0, fill};
+}
+
+/* ── FULL-SIZE ANIME GIRL BUILDER (avatar page) ── */
+function buildGirlFull(scene){
+  const T=window.THREE;
+  function M(g,m){ return new T.Mesh(g,m); }
+  function add(mesh,y,x=0,z=0){ mesh.position.set(x,y,z); mesh.castShadow=true; scene.add(mesh); return mesh; }
+
+  // Same materials as buildGirl but full size
+  const skinMat  =new T.MeshPhongMaterial({color:0xfde8d8,emissive:0x1a0500,shininess:70});
+  const hairMat  =new T.MeshPhongMaterial({color:0xf0a0b0,emissive:0x4a1020,shininess:160});
+  const hairShad =new T.MeshPhongMaterial({color:0xd87090,emissive:0x380818,shininess:140});
+  const hairHigh =new T.MeshPhongMaterial({color:0xffc8d8,emissive:0x5a1828,shininess:200});
+  const outfitMat=new T.MeshPhongMaterial({color:0xf0f8ff,emissive:0x080c14,shininess:60});
+  const collarMat=new T.MeshPhongMaterial({color:0x80d8e8,emissive:0x082030,shininess:80});
+  const eyeWht   =new T.MeshPhongMaterial({color:0xffffff,emissive:0x0a0a0a});
+  const irisMat  =new T.MeshPhongMaterial({color:0x40c8b8,emissive:0x0a4030,shininess:220});
+  const pupilMat =new T.MeshPhongMaterial({color:0x050808});
+  const shine1   =new T.MeshPhongMaterial({color:0xffffff,emissive:0xffffff});
+  const shine2   =new T.MeshPhongMaterial({color:0xddeeff,emissive:0xaaccee});
+  const lashMat  =new T.MeshPhongMaterial({color:0x100808});
+  const browMat  =new T.MeshPhongMaterial({color:0xb06870,emissive:0x200808});
+  const lipMat   =new T.MeshPhongMaterial({color:0xf08090,emissive:0x6a0818,shininess:160});
+  const noseMat  =new T.MeshPhongMaterial({color:0xf5c8b0,emissive:0x180400});
+  const cheekMat =new T.MeshPhongMaterial({color:0xff9aaa,emissive:0xcc2244,transparent:true,opacity:.48});
+  const dressBot =new T.MeshPhongMaterial({color:0xe8f4ff,emissive:0x080c14,shininess:40});
+
+  // ── BODY ──
+  add(M(new T.CylinderGeometry(.72,.96,1.0,32),dressBot),-1.12); // skirt
+  add(M(new T.CylinderGeometry(.42,.48,1.38,32),outfitMat),-.04); // torso shirt
+  // Teal collar
+  const col=add(M(new T.TorusGeometry(.42,.032,8,32),collarMat),.74);
+  col.rotation.x=Math.PI/2;
+  add(M(new T.CylinderGeometry(.43,.43,.07,32),collarMat),.70);
+  // Neck
+  add(M(new T.CylinderGeometry(.12,.15,.24,20),skinMat),.78);
+  // Arms
+  for(const x of[-1,1]){
+    const arm=add(M(new T.CylinderGeometry(.10,.09,.92,16),outfitMat),.06,x*.74);
+    arm.rotation.z=x*.36;
+  }
+
+  // ── HEAD GROUP ──
+  const headGroup=new T.Group();
+  headGroup.position.set(0,1.35,0);
+  scene.add(headGroup);
+
+  // Head shape
+  const hG=new T.SphereGeometry(.44,40,40); hG.scale(1.04,.96,.92);
+  headGroup.add(new T.Mesh(hG,skinMat));
+  const chG=new T.SphereGeometry(.22,16,16); chG.scale(1,1.35,.82);
+  const chin=new T.Mesh(chG,skinMat); chin.position.set(0,-.32,0.03); headGroup.add(chin);
+
+  // ── HAIR ──
+  const hcG=new T.SphereGeometry(.48,36,36,0,Math.PI*2,0,Math.PI*.57);
+  const hc=new T.Mesh(hcG,hairMat); hc.position.set(0,.09,-.02); hc.rotation.x=.04; headGroup.add(hc);
+  const hbG=new T.SphereGeometry(.44,20,20); hbG.scale(1,.8,1.3);
+  const hb=new T.Mesh(hbG,hairShad); hb.position.set(0,.04,-.4); headGroup.add(hb);
+  // Ponytail
+  const bunG=new T.SphereGeometry(.20,16,16); bunG.scale(1.1,.9,1);
+  const bun=new T.Mesh(bunG,hairMat); bun.position.set(.06,.38,-.30); headGroup.add(bun);
+  const ptG=new T.CylinderGeometry(.13,.07,.95,12);
+  const pt=new T.Mesh(ptG,hairShad); pt.position.set(.09,-.20,-.44); pt.rotation.z=.12; pt.rotation.x=.18; headGroup.add(pt);
+  const pt2G=new T.ConeGeometry(.08,.3,10);
+  const pt2=new T.Mesh(pt2G,hairShad); pt2.position.set(.11,-.64,-.40); pt2.rotation.z=.15; pt2.rotation.x=.22; headGroup.add(pt2);
+  // Bangs
+  for(let i=-3;i<=3;i++){
+    const bkG=new T.CylinderGeometry(.042,.018,(.28+Math.abs(i)*.04),7);
+    const bk=new T.Mesh(bkG,Math.abs(i)===3?hairHigh:hairMat);
+    bk.position.set(i*.09,.07,.40); bk.rotation.z=i*.11; bk.rotation.x=-.38; headGroup.add(bk);
+  }
+  // Ahoge
+  const ahG=new T.CylinderGeometry(.015,.009,.24,6);
+  const ah=new T.Mesh(ahG,hairHigh); ah.position.set(.04,.46,.13); ah.rotation.z=.25; ah.rotation.x=-.1; headGroup.add(ah);
+  // Side strands
+  for(const x of[-1,1]){
+    const sgG=new T.CylinderGeometry(.10,.06,1.05,10);
+    const sg=new T.Mesh(sgG,x===1?hairShad:hairMat);
+    sg.position.set(x*.42,-.30,-.04); sg.rotation.z=x*.20; headGroup.add(sg);
+    const sg2G=new T.ConeGeometry(.06,.24,8);
+    const sg2=new T.Mesh(sg2G,hairShad);
+    sg2.position.set(x*.48,-.78,-.06); sg2.rotation.z=x*.24; headGroup.add(sg2);
+  }
+
+  // ── EARS ──
+  for(const x of[-1,1]){
+    const eG=new T.SphereGeometry(.11,14,14); eG.scale(.52,1,.42);
+    const ear=new T.Mesh(eG,skinMat); ear.position.set(x*.43,.01,0); headGroup.add(ear);
+  }
+
+  // ── EYES (teal) ──
+  const eyeGrps=[];
+  for(const xv of[-.20,.20]){
+    const eg=new T.Group(); eg.position.set(xv,.04,.37); headGroup.add(eg);
+    const wG=new T.SphereGeometry(.102,20,20); wG.scale(1,1.28,.58);
+    eg.add(new T.Mesh(wG,eyeWht));
+    const iG=new T.SphereGeometry(.078,18,18); iG.scale(1,1.22,.52);
+    const iris=new T.Mesh(iG,irisMat); iris.position.z=.042; eg.add(iris);
+    const pG=new T.SphereGeometry(.038,12,12);
+    const pupil=new T.Mesh(pG,pupilMat); pupil.position.z=.076; eg.add(pupil);
+    const h1=new T.Mesh(new T.SphereGeometry(.027,8,8),shine1); h1.position.set(-.028,.030,.09); eg.add(h1);
+    const h2=new T.Mesh(new T.SphereGeometry(.014,6,6),shine2); h2.position.set(.024,-.013,.095); eg.add(h2);
+    // Blink lid
+    const lidG2=new T.SphereGeometry(.108,16,8); lidG2.scale(1,1.3,.55);
+    const lid=new T.Mesh(lidG2,skinMat); lid.position.z=.040; lid.scale.y=0.01; eg.add(lid);
+    // Lashes
+    const ulG=new T.BoxGeometry(.208,.020,.008);
+    eg.add(Object.assign(new T.Mesh(ulG,lashMat),{position:new T.Vector3(0,.100,.040)}));
+    for(let l=-2;l<=2;l++){
+      const lsG=new T.CylinderGeometry(.006,.002,.060,5);
+      const ls=new T.Mesh(lsG,lashMat); ls.position.set(l*.044,.145,.034); ls.rotation.z=l*.09; eg.add(ls);
+    }
+    eg.add(Object.assign(new T.Mesh(new T.BoxGeometry(.175,.011,.007),lashMat),{position:new T.Vector3(0,-.098,.036)}));
+    eyeGrps.push({lid,iris});
+  }
+
+  // ── BROWS ──
+  for(const xv of[-.192,.192]){
+    const bg=new T.Group(); bg.position.set(xv,.178,.380); headGroup.add(bg);
+    const bm=new T.Mesh(new T.BoxGeometry(.145,.014,.016),browMat); bm.rotation.z=(xv<0?1:-1)*-.14; bg.add(bm);
+    const bt=new T.Mesh(new T.BoxGeometry(.058,.011,.014),browMat);
+    bt.position.set((xv<0?-1:1)*.098,-.012,0); bt.rotation.z=(xv<0?-1:1)*.18; bg.add(bt);
+  }
+
+  // ── NOSE ──
+  const nose=new T.Mesh(new T.SphereGeometry(.022,8,8),noseMat);
+  nose.geometry.scale(1,.65,1); nose.position.set(0,-.074,.435); headGroup.add(nose);
+
+  // ── MOUTH ──
+  const mGrp=new T.Group(); mGrp.position.set(0,-.208,.405); headGroup.add(mGrp);
+  const uLip=new T.Mesh(new T.TorusGeometry(.053,.014,8,22,Math.PI),lipMat); uLip.rotation.z=Math.PI; mGrp.add(uLip);
+  const lLip=new T.Mesh(new T.TorusGeometry(.065,.013,8,22,Math.PI),lipMat); lLip.position.y=-.02; mGrp.add(lLip);
+  const mIntG=new T.SphereGeometry(.048,12,8); mIntG.scale(1,.5,.7);
+  const mInt=new T.Mesh(mIntG,new T.MeshPhongMaterial({color:0xc03040,emissive:0x400010}));
+  mInt.position.set(0,-.012,-.005); mInt.scale.y=0; mGrp.add(mInt);
+
+  // ── CHEEKS ──
+  for(const x of[-1,1]){
+    const ckG=new T.SphereGeometry(.095,12,8); ckG.scale(1,.18,1);
+    const ck=new T.Mesh(ckG,cheekMat); ck.position.set(x*.290,-.050,.380); headGroup.add(ck);
+  }
+
+  // ── LIGHTS ──
+  const kl=new T.DirectionalLight(0xffffff,.88); kl.position.set(5,12,6); kl.castShadow=true; scene.add(kl);
+  const fl=new T.PointLight(0x80e8ff,.65,35); fl.position.set(-5,4,6); scene.add(fl);
+  const bl=new T.PointLight(0x7c3aed,.4,25); bl.position.set(0,-2,-6); scene.add(bl);
+  const fL=new T.PointLight(0xfff4ec,.7,10); fL.position.set(0,2.0,3.0); scene.add(fL);
+  scene.add(new T.AmbientLight(0xffffff,.35));
+
+  // ── ANIMATION — eye blink + expressions + mouth ──
+  let t=0;
+  let nextBlink=2.5;
+  let blinkState=0; // 0=open,1=closing,2=opening
+  let blinkProgress=0;
+
+  // Expression smooth targets
+  let curBrowY=0, curBrowT=0, curMouthO=0, curCheekS=1;
+
+  function fullAnim(){
+    requestAnimationFrame(fullAnim);
+    t+=.014;
+
+    // Head subtle sway
+    headGroup.rotation.y=Math.sin(t*.38)*.16;
+    headGroup.position.y=1.35+Math.sin(t*.72)*.038;
+
+    // ── BLINK ──
+    nextBlink-=.014;
+    if(nextBlink<=0 && blinkState===0){ blinkState=1; blinkProgress=0; nextBlink=2.2+Math.random()*2.5; }
+    if(blinkState===1){
+      blinkProgress+=.18;
+      const bv=Math.min(blinkProgress,1);
+      eyeGrps.forEach(eg=>{ eg.lid.scale.y=bv; });
+      if(blinkProgress>=1){ blinkState=2; blinkProgress=0; }
+    }
+    if(blinkState===2){
+      blinkProgress+=.22;
+      const bv=Math.max(1-blinkProgress,0);
+      eyeGrps.forEach(eg=>{ eg.lid.scale.y=bv; });
+      if(blinkProgress>=1){ blinkState=0; eyeGrps.forEach(eg=>eg.lid.scale.y=0); }
+    }
+
+    // ── EXPRESSION SMOOTHING ──
+    const eT=NF.eT;
+    curBrowY+=(eT.browY-curBrowY)*.08;
+    curBrowT+=(eT.browTilt-curBrowT)*.08;
+    curMouthO+=(eT.mouthO-curMouthO)*.10;
+    curCheekS+=(eT.cheekScale-curCheekS)*.08;
+
+    // Apply brow
+    headGroup.children.forEach(c=>{
+      if(c===headGroup) return;
+    });
+    // brow positions (find by stored refs if full build — approximate via t-based for now)
+
+    // Mouth open/close
+    const mo=curMouthO;
+    uLip.position.y=mo*.045;
+    lLip.position.y=-.02-mo*.045;
+    mInt.scale.y=mo;
+    mInt.scale.x=1+mo*.3;
+
+    // ── TALKING ──
+    if(NF.talking){
+      const tv=Math.abs(Math.sin(t*8))*.65+.15;
+      uLip.position.y=tv*.04;
+      lLip.position.y=-.02-tv*.04;
+      mInt.scale.y=tv*.8;
+    }
+
+    // Iris subtle look-around
+    const lookX=Math.sin(t*.22)*.012;
+    const lookY=Math.sin(t*.18)*.008;
+    eyeGrps.forEach(eg=>{
+      eg.iris.position.x=lookX;
+      eg.iris.position.y=lookY;
+    });
+
+    fl.intensity=.55+Math.sin(t)*.14;
+  }
+  fullAnim();
+}
+
+function renderNotes(){
+  const g=document.getElementById('notes-grid');
+  g.innerHTML='';
+  if(!St.notes.length){ g.innerHTML='<p style="color:var(--txt2);padding:28px;grid-column:1/-1">No notes yet. Click "+ New Note" to begin!</p>'; return; }
+  St.notes.forEach((n,i)=>{
+    const c=document.createElement('div'); c.className='nc';
+    c.innerHTML=`<div class="nc-title">${n.title}</div><div class="nc-prev">${n.body||'(empty)'}</div><div class="nc-date">${n.date}</div>`;
+    c.onclick=()=>openNote(i); g.appendChild(c);
+  });
+}
+function newNote(){ St.editIdx=null; document.getElementById('ne-title').value=''; document.getElementById('ne-body').value=''; document.getElementById('notes-grid').style.display='none'; document.getElementById('note-ed').style.display='flex'; document.getElementById('ne-title').focus(); }
+function openNote(i){ St.editIdx=i; document.getElementById('ne-title').value=St.notes[i].title; document.getElementById('ne-body').value=St.notes[i].body; document.getElementById('notes-grid').style.display='none'; document.getElementById('note-ed').style.display='flex'; }
+function saveNote(){ const t=document.getElementById('ne-title').value.trim()||'Untitled'; const b=document.getElementById('ne-body').value.trim(); const n={title:t,body:b,date:new Date().toLocaleDateString()}; if(St.editIdx!==null) St.notes[St.editIdx]=n; else St.notes.unshift(n); save('nv_notes',St.notes); cancelNote(); renderNotes(); toast('Note saved! ✓'); }
+function cancelNote(){ document.getElementById('notes-grid').style.display='grid'; document.getElementById('note-ed').style.display='none'; St.editIdx=null; }
+
+/* ══════════════════════════════════════════════
+   STUDY
+══════════════════════════════════════════════ */
+const LESSONS={
+  math:{t:'📐 Algebra Fundamentals',b:`<p>Algebra uses variables to represent unknown quantities — the foundation of all higher math.</p><div class="hl"><strong>Golden rule:</strong> Whatever you do to one side, do to the other.</div><p><strong>Solving step by step:</strong></p><code>2x + 6 = 14\n2x = 14 − 6 = 8\n x = 4  ✓</code><p>Once this clicks, quadratics and beyond become natural progressions.</p>`},
+  science:{t:'⚗️ Newton\'s Laws of Motion',b:`<p>Three laws that govern how all objects move under forces.</p><div class="hl"><strong>Law 1 — Inertia:</strong> Objects keep doing what they're doing unless a force intervenes.</div><div class="hl"><strong>Law 2 — F = ma:</strong> Force equals mass × acceleration.</div><div class="hl"><strong>Law 3 — Reaction:</strong> Every action has an equal, opposite reaction.</div><code>F = m × a\nF = 10 kg × 3 m/s² = 30 N</code>`},
+  history:{t:'🏛 The Renaissance',b:`<p>Europe's great rebirth of art, science and human-centered thinking (14th–17th century).</p><div class="hl"><strong>Key themes:</strong> Classical revival · Humanism · Scientific method</div><p><strong>Icons:</strong> Leonardo da Vinci, Michelangelo, Galileo, Shakespeare.</p><p>Gutenberg's printing press (1440) accelerated the spread of Renaissance ideas across the continent like wildfire.</p>`},
+  lang:{t:'📖 Parts of Speech',b:`<p>The eight building blocks every English sentence is made of.</p><div class="hl"><strong>Noun</strong> — person/place/thing: <em>Novara, Tokyo, idea</em></div><div class="hl"><strong>Verb</strong> — action/state: <em>runs, thinks, is</em></div><div class="hl"><strong>Adjective</strong> — describes nouns: <em>brilliant, fast</em></div><div class="hl"><strong>Adverb</strong> — describes verbs: <em>quickly, very</em></div><code>"The brilliant AI responded quickly."\n  ↑ adjective          ↑ adverb</code>`},
+  code:{t:'💻 JavaScript Fundamentals',b:`<p>JavaScript makes web pages interactive. These are the core building blocks.</p><div class="hl"><strong>Variables:</strong> <code style="display:inline;border:none;padding:2px 6px">let</code> (changes) · <code style="display:inline;border:none;padding:2px 6px">const</code> (fixed) · <code style="display:inline;border:none;padding:2px 6px">var</code> (old)</div><code>const name = "Novara";\nlet score = 100;\n\nfunction greet(user) {\n  return \`Hello \${user}, I am \${name}!\`;\n}\n\nconsole.log(greet("boss"));\n// → Hello boss, I am Novara!</code><p>Master functions and you master JavaScript.</p>`}
+};
+
+function loadLesson(el,key){
+  document.querySelectorAll('.tpill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const l=LESSONS[key];
+  document.getElementById('lcard').innerHTML=`<h3>${l.t}</h3>${l.b}<div class="ask-bar"><input type="text" placeholder="Ask Novara about this topic…" id="study-q" onkeydown="if(event.key==='Enter')askTeacher()"/><button class="btn-p" onclick="askTeacher()">Ask</button></div>`;
+}
+
+async function askTeacher(){
+  const q=document.getElementById('study-q')?.value.trim();
+  if(!q) return;
+  const r=St.api?await callGemini('Explain clearly as a teacher: '+q):'Great question, boss! '+smartCore(q.toLowerCase())+' Keep exploring — curiosity is the key to mastery.';
+  go('chat');
+  setTimeout(()=>{ addMsg('Study: '+q,'user',false); addMsg(r,'ai',true); },300);
+}
+
+/* ══════════════════════════════════════════════
+   MEMORY
+══════════════════════════════════════════════ */
+function saveMem(k,v){ St.mem[k]=v; save('nv_mem',St.mem); }
+function renderMem(){
+  const g=document.getElementById('mem-grid'); g.innerHTML='';
+  const items=[
+    {k:'name',l:'Your Name',v:St.name,del:true},
+    {k:'prefs',l:'Interests',v:St.prefs||'Not set',del:true},
+    {k:'lang',l:'Language',v:St.lang,del:false},
+    {k:'notes',l:'Notes Created',v:St.notes.length,del:false},
+    {k:'lastMsg',l:'Last Message',v:St.mem.lastMsg||'—',del:false},
+    {k:'session',l:'Session Started',v:St.mem.session||'—',del:false},
+  ];
+  items.forEach(it=>{
+    const c=document.createElement('div'); c.className='mcard';
+    c.innerHTML=`<div class="mcard-label">${it.l}${it.del?`<button class="m-del" onclick="delMem('${it.k}')">Delete</button>`:''}</div><div class="mcard-val">${it.v}</div>`;
+    g.appendChild(c);
+  });
+}
+function delMem(k){
+  if(k==='name'){ St.name='Boss'; save('nv_name','Boss'); }
+  else if(k==='prefs'){ St.prefs=''; save('nv_prefs',''); }
+  renderMem();
+  toast('Memory entry deleted.');
+}
+function clearMem(){ if(!confirm('Clear all memory?')) return; St.mem={}; save('nv_mem',{}); renderMem(); toast('Memory cleared, boss.'); }
+
+/* ══════════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════════ */
+function loadSettings(){
+  document.getElementById('s-api').value=St.api||'';
+  document.getElementById('s-name').value=St.name;
+  document.getElementById('s-prefs').value=St.prefs;
+  document.getElementById('s-lang').value=St.lang;
+  updateBadge(!!St.api);
+}
+function saveApi(){
+  const k=document.getElementById('s-api').value.trim();
+  if(!k){ toast('⚠️ Please enter an API key'); return; }
+  St.api=k; save('nv_api',k);
+  updateBadge(true);
+  toast('API key saved! ✓ Novara is now fully powered.');
+  fridaySpeak('API key saved successfully, boss. I\'m now connected to Gemini.');
+}
+function updateBadge(on){
+  const b=document.getElementById('api-badge');
+  b.className='api-badge '+(on?'ok':'no');
+  document.getElementById('api-badge-txt').textContent=on?'Gemini Connected':'Not Connected';
+}
+function saveProfile(){
+  St.name=document.getElementById('s-name').value.trim()||'Boss';
+  St.prefs=document.getElementById('s-prefs').value.trim();
+  St.lang=document.getElementById('s-lang').value;
+  save('nv_name',St.name); save('nv_prefs',St.prefs); save('nv_lang',St.lang);
+  saveMem('userName',St.name);
+  toast('Profile saved, '+St.name+'! ✓');
+  fridaySpeak('Profile updated, '+St.name+'. I\'ll remember everything about you.');
+}
+function nukeAll(){ if(!confirm('Delete everything? This cannot be undone.')) return; localStorage.clear(); location.reload(); }
+</script>
+</body>
+</html>
